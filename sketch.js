@@ -1,6 +1,6 @@
 var canvas;
-var worm;
-var wormList = [];
+var fish;
+var fishList = [];
 var drawButton;
 var eraseAllButton;
 var randomSlider;
@@ -14,31 +14,34 @@ var facingForward = true;
 var approach = false;
 var modeCurrent = 0;
 var firstTimeSwitch = true;
-var wormSegmentSize = 10;
-var wormSizeOff = 0;
-var wormGrowthFactor= 1;
-var wormStopGrowing = false;
-var wormRed = 0;
-var wormGreen = 50;
-var wormBlue = 255;
-var wormSize = 100;
-var wormGrow = true;  
+var fishSegmentSize = 5;
+var fishSizeOff = 0;
+var fishGrowthFactor= 1;
+var fishStopGrowing = false;
+var fishRed = 0;
+var fishGreen = 225;
+var fishBlue = 255;
+var fishSize = 100;
+var fishGrow = true;  
 var onTail;
 var approachSpeed;
+var xTiming;
 
 
 
 
 
 function setup() {
+  xTiming = random(0.003, 0.01);
+
   canvas = createCanvas(1000, 600);
   canvas.parent('canvasContainer');
   canvas.mouseOver(function() { onCanvas = true; });
   canvas.mouseOut( function() { onCanvas = false; });
-  worm = new Worm();
-  // randomSlider = createSlider(1, 100, 10);
-  // randomSlider.parent('controls');
-  // randomSlider.html("test");
+  fish = new Fish();
+  randomSlider = createSlider(0, 100, 1);
+  randomSlider.parent('controls');
+  randomSlider.html("test");
   switchModeButton = createButton("Switch Mode");
   switchModeButton.parent('controls');
   switchModeButton.mousePressed(function() { modeCurrent++; });
@@ -50,7 +53,7 @@ function setup() {
   switchDirectionButton.parent('controls');
   switchDirectionButton.mousePressed(function() { 
     facingForward = !facingForward; 
-    reverse(wormList);
+    reverse(fishList);
   })
 
 
@@ -74,29 +77,30 @@ function setup() {
 
 function draw() {
   changeMode();
-  // randomness = randomSlider.value();
-  if (eraser === false && mouseIsPressed && onCanvas === true && wormStopGrowing === false) {
-    wormList.unshift(new Worm());
+  randomness = randomSlider.value()/10000;
+  if (eraser === false && mouseIsPressed && onCanvas === true && fishStopGrowing === false) {
+    fishList.unshift(new Fish());
   } 
   if (keyIsPressed) {
     ;
   }
 
-  for (i = 0; i < wormList.length; i++) {
-    worm = wormList[i];
-    worm.move();
-    worm.display();
-    if  (eraser === true && mouseIsPressed && dist(worm.x, worm.y, mouseX, mouseY) < 10){
-      wormList.splice(i, 1);
+  for (i = 0; i < fishList.length; i++) {
+    fish = fishList[i];
+    fish.move();
+    fish.display();
+    if  (eraser === true && mouseIsPressed && dist(fish.x, fish.y, mouseX, mouseY) < 10){
+      fishList.splice(i, 1);
     }
   }
 }
 
 function mouseReleased() {
-  wormStopGrowing = false;
-  wormBlue = random(255);
-  wormGreen = random(255);
-  wormRed = random(255);
+  fishStopGrowing = false;
+  fishBlue = random(255);
+  fishGreen = random(255);
+  fishRed = random(255);
+  xTiming = random(0.003, 0.01);
 }
 
 function changeMode() {
@@ -114,7 +118,7 @@ function changeMode() {
       firstTimeSwitch = false;
     }
     noStroke();
-    fill(0, 5); 
+    fill(0, 1); 
     rect(0, 0, width, height);
 
     fill(255,255,0, 100); 
@@ -123,41 +127,40 @@ function changeMode() {
 
 function eraseEverything() {
   modeCurrent = 0;
-  wormList = [];
+  fishList = [];
 }
 
-// Worm class
-function Worm() {
+// fish class
+function Fish() {
   this.x = mouseX;
   this.y = mouseY;
-  this.diameter = wormSegmentSize;
+  this.diameter = fishSegmentSize;
   var attracted = false;
   var moveXOff = 0;
   var moveYOff = 500;
-  var xTime = 0.01;
-  var yTime = 0.005;
+  var yTiming = 0.005;
 
-  wormRed = wormRed + 10
-  wormBlue = wormBlue -10
-  this.blue = wormBlue;
-  this.red = wormRed;
-  this.green = wormGreen;
-  wormSegmentSize = wormSegmentSize + wormGrowthFactor;
-  wormSizeOff = wormSizeOff + 0.01;
-  if (wormGrowthFactor > 8) {
-    wormGrow = false;
-  } else if (wormGrowthFactor < -8) {
-    wormGrow = true;
+  fishRed = fishRed + 10
+  fishBlue = fishBlue -10
+  this.blue = fishBlue;
+  this.red = fishRed;
+  this.green = fishGreen;
+  fishSegmentSize = fishSegmentSize + fishGrowthFactor;
+  fishSizeOff = fishSizeOff + 0.01;
+  if (fishGrowthFactor > 8) {
+    fishGrow = false;
+  } else if (fishGrowthFactor < -8) {
+    fishGrow = true;
     onTail = true;
   }
-  if (wormGrow === true) {
-    wormGrowthFactor = wormGrowthFactor + 2;
-  } else if (wormGrow === false) {
-    wormGrowthFactor = wormGrowthFactor - 2;
+  if (fishGrow === true) {
+    fishGrowthFactor = fishGrowthFactor + 2;
+  } else if (fishGrow === false) {
+    fishGrowthFactor = fishGrowthFactor - 2;
   }
-  if (wormGrowthFactor > 8 && onTail === true) {
-    wormStopGrowing = true;
-    wormSegmentSize = 10;
+  if (fishGrowthFactor > 8 && onTail === true) {
+    fishStopGrowing = true;
+    fishSegmentSize = 10;
     // moveXOff = moveXOff + 100000;
 
   }
@@ -166,8 +169,8 @@ function Worm() {
 
 
   this.move = function() {
-    moveXOff = moveXOff + xTime;
-    moveYOff = moveYOff + yTime;
+    moveXOff = moveXOff + xTiming+ randomness;
+    moveYOff = moveYOff + yTiming;
 
     var xMoveRandomness = noise(moveXOff)*(width);
     var yMoveRandomness = noise(moveYOff)*(height);
@@ -175,25 +178,26 @@ function Worm() {
     this.x = xMoveRandomness;
     this.y = yMoveRandomness;
 
-    // this.x = ((this.x*randomness) + xMoveRandomness)/(1+randomness);
-    // this.y = ((this.y*randomness) + yMoveRandomness)/(1+randomness);
-
 
   };
 
   this.display = function() {
     fill(this.red, this.green, this.blue);
-    stroke(0, 0, 0);
-    ellipse(this.x, this.y, this.diameter, this.diameter);
+    stroke(0, 0, 0, 200);
+    rectMode(CENTER);
+    // rect(this.x, this.y, this.diameter/1.5, this.diameter, this.diameter);
+
+    ellipse(this.x, this.y, this.diameter/(2-(xTiming*1-0)), this.diameter/(2-(yTiming*100)));
+
     if (approach === true) {
       if (facingForward === true){
         approachSpeed = 0.001;
-        xTime = xTime + 0.0000002
-        yTime = yTime + 0.000001
+        xTiming = xTiming + 0.0000002
+        yTiming = yTiming + 0.000001
       } else {
         approachSpeed = -0.002;
-        xTime = xTime - 0.0000001;
-        // yTime = yTime - 0.000001;
+        xTiming = xTiming - 0.0000001;
+        // yTiming = yTiming - 0.000001;
       }
       this.diameter = this.diameter + (this.diameter * approachSpeed)
       // approachSpeed = approachSpeed + (0.0000001)
