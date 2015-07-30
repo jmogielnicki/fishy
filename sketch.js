@@ -1,208 +1,330 @@
 var canvas;
-var fish;
 var fishList = [];
-var drawButton;
-var eraseAllButton;
-var randomSlider;
-var eraser = false;
-var onCanvas;
-var randomness = 100;
-var switchModeButton;
-var approachButton;
-var switchDirectionButton;
-var facingForward = true;
-var approach = false;
-var modeCurrent = 0;
-var firstTimeSwitch = true;
-var fishSegmentSize = 5;
-var fishSizeOff = 0;
-var fishGrowthFactor= 1;
-var fishStopGrowing = false;
-var fishRed = 0;
-var fishGreen = 225;
-var fishBlue = 255;
-var fishSize = 100;
-var fishGrow = true;  
-var onTail;
-var approachSpeed;
-var xTiming;
+var trails = false;
+var backgroundTransparency = 1;
+var lightBeamOne;
+var spotLightOn = false;
+var darknessSlider;
+var darkness = 10;
+var forward = true;
+var fishColorChangeAmount = 0;
+var shapeArray = ['ellipse', 'rect']
+var shapeCount = 0;
+var fishNameArray = ['Riley', 'Kale', 'Eli', 'Davis']
+var fishNameCount = 0;
+var showName = true;
+var dayLight = false;
+var yWaveTime = 0.0;
+var psychedelicOn = false;
+var sizeChange = 1;
 
 
-
-
+function preload() {
+  soundFormats('ogg', 'mp3');
+  waterDropSound = loadSound('assets/sounds/waterDrop.mp3');
+}
 
 function setup() {
-  xTiming = random(0.003, 0.01);
-
-  canvas = createCanvas(1000, 600);
+  waterDropSound.play();
+  canvas = createCanvas(windowWidth-100, windowHeight-100);
   canvas.parent('canvasContainer');
   canvas.mouseOver(function() { onCanvas = true; });
   canvas.mouseOut( function() { onCanvas = false; });
-  fish = new Fish();
-  randomSlider = createSlider(0, 100, 1);
-  randomSlider.parent('controls');
-  randomSlider.html("test");
-  switchModeButton = createButton("Switch Mode");
-  switchModeButton.parent('controls');
-  switchModeButton.mousePressed(function() { modeCurrent++; });
-  approachButton = createButton("Release");
-  approachButton.parent('controls');
-  approachButton.mousePressed(function() { approach = true; })
+  colorMode(HSL, 360, 100, 100);
+  createButtons();
 
-  switchDirectionButton = createButton("Turn Around");
-  switchDirectionButton.parent('controls');
-  switchDirectionButton.mousePressed(function() { 
-    facingForward = !facingForward; 
-    reverse(fishList);
-  })
-
-
-  drawButton = createButton("Eraser");
-  drawButton.parent('controls');
-  drawButton.mousePressed(
-    function() { 
-    if (eraser === false) {
-      drawButton.html('Bubbler');
-      cursor(HAND);
-    } else {
-      drawButton.html('Eraser');
-    }
-
-    eraser = !eraser;
-  });
-  eraseAllButton = createButton("Reset");
-  eraseAllButton.parent('controls');
-  eraseAllButton.mousePressed(eraseEverything)
+  // darknessSlider = createSlider(1, 20, 5);
+  // darknessSlider.parent('controls');
+  // darknessSlider.html('Darkness');
 }
+
 
 function draw() {
-  changeMode();
-  randomness = randomSlider.value()/10000;
-  if (eraser === false && mouseIsPressed && onCanvas === true && fishStopGrowing === false) {
-    fishList.unshift(new Fish());
-  } 
-  if (keyIsPressed) {
-    ;
-  }
 
+  if (dayLight === true) {
+    darkness = 50;
+  } else {
+    darkness = 20;
+  }
+  if(trails === false) {
+    backgroundTransparency = 1;
+  } else {
+    backgroundTransparency = 0.01;
+  }
+  fill(101, 80, 100, backgroundTransparency);
+  rect(-1, -1, width+1, height+1)
+
+  createWave();
+
+//Display fish
+  stroke(100, 100, 10);
   for (i = 0; i < fishList.length; i++) {
     fish = fishList[i];
-    fish.move();
     fish.display();
-    if  (eraser === true && mouseIsPressed && dist(fish.x, fish.y, mouseX, mouseY) < 10){
-      fishList.splice(i, 1);
-    }
+    fish.move();
   }
 }
 
-function mouseReleased() {
-  fishStopGrowing = false;
-  fishBlue = random(255);
-  fishGreen = random(255);
-  fishRed = random(255);
-  xTiming = random(0.003, 0.01);
+
+function createButtons() {
+
+  nameBoxLabel = createElement('h4', 'Enter Fish Name');
+  nameBoxLabel.parent('controls');
+  nameBox = createInput('');
+  nameBox.html('Fish Name')
+  nameBox.parent('controls');
+  
+  createFishButton = createButton('Create Fish');
+  createFishButton.parent('controls');
+  createFishButton.mousePressed(createFish);
+
+  showNameButton = createButton('Show/Hide Names');
+  showNameButton.parent('controls');
+  showNameButton.mousePressed(showNames);
+
+  spotLightButton = createButton('Spotlight');
+  spotLightButton.parent('controls');
+  spotLightButton.mousePressed(spotLightOnOff);
+
+  dayTimeButton = createButton('Day/Night');
+  dayTimeButton.parent('controls');
+  dayTimeButton.mousePressed(dayLightOn);
+
+  psychedelicButton = createButton('Psychedelic');
+  psychedelicButton.parent('controls');
+  psychedelicButton.mousePressed(function psychedelic() {
+    psychedelicOn = !psychedelicOn;
+    if (psychedelicOn === true) {
+      dayLight = true;
+      if (fishColorChangeAmount === 0) {
+        fishColorChangeAmount = 4;
+      } else {
+        fishColorChangeAmount = 0;
+      } 
+    } else {
+      daylight = false;
+      fishColorChangeAmount = 0;
+    }
+
+  });
+
 }
 
-function changeMode() {
-  if (modeCurrent > 2) {
-    modeCurrent = 0;
-    firstTimeSwitch = true;
-  } else if (modeCurrent === 0) {
-    background(15, 55, 77);
-  } else if (modeCurrent === 1) {
-    fill(255, 10); // semi-transparent white
-    rect(-1, -1, width+2, height+2);
-  } else if (modeCurrent === 2) {
-    if (firstTimeSwitch === true) {
-      background(0,0,0);
-      firstTimeSwitch = false;
-    }
-    noStroke();
-    fill(0, 1); 
-    rect(0, 0, width, height);
-
-    fill(255,255,0, 100); 
+function createWave(){
+// Experimenting with wave 
+  fill(201, 80, darkness/2, backgroundTransparency);
+  beginShape(); 
+  var xWaveTime = 0;
+  // Iterate over horizontal pixels
+  for (var x = 0; x <= width; x += 10) {
+    // Calculate a y value according to noise, map to width
+    var y = map(noise(xWaveTime, yWaveTime), 0, 1, 0,50);
+    // Set the vertex
+    vertex(x, y); 
+    // Increment x dimension for noise
+    xWaveTime += 0.05;
   }
-};
+  // increment y dimension for noise
+  yWaveTime += 0.01;
+  vertex(width, height);
+  vertex(0, height);
+  endShape(CLOSE);
 
-function eraseEverything() {
-  modeCurrent = 0;
-  fishList = [];
+  if(spotLightOn === true) {
+    lightBeam();
+  }
+}
+
+function createSliders(name, label, parent, min, max, start) {
+  name = createSlider(min, max, start);
+  name.parent(parent);
+  name.html(label);
+  frameRate(name.value());
+}
+
+function lightBeam() {
+  noStroke();
+  fill(0, 100, 100, .03);
+  ellipse(mouseX, mouseY, 300, 300);
+  // beginShape();
+  // vertex(mouseX, 0);
+  // vertex(mouseX, 0);
+  // vertex((mouseX)-(height/4), height);
+  // vertex((mouseX)+(height/8), height);
+  // endShape();
+}
+
+function createFish() {
+
+  fishName = nameBox.value();
+  nameBox.value('');
+  fishList.push(new Fish(random(10, 75), random(1, 6), random(20, 25), fishName));
+  waterDropSound.play();
+  fishNameCount += 1;
+}
+
+function showNames() {
+  showName = !showName;
+}
+
+function spotLightOnOff() {
+  spotLightOn = !spotLightOn
+}
+
+function dayLightOn() {
+  dayLight = !dayLight;
+}
+
+function keyPressed() {
+  if(keyCode === 84) {
+    trails = !trails;
+  }
+
+  if(keyCode === 70) {
+    forward = !forward;
+    for(var i = 0; i < fishList.length; i++) {
+      fishList[i].segmentList.reverse();
+    }
+  }
+  if(keyCode === 83) {
+    if(shapeCount >= shapeArray.length-1) {
+      shapeCount = 0;
+    } else {
+      shapeCount++;
+    }
+
+  }
+
+  if(keyCode === 67) {
+
+  }
+
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth-100, windowHeight-100);
+  background(201, 80.5, 15);
 }
 
 // fish class
-function Fish() {
-  this.x = mouseX;
-  this.y = mouseY;
-  this.diameter = fishSegmentSize;
-  var attracted = false;
-  var moveXOff = 0;
-  var moveYOff = 500;
-  var yTiming = 0.005;
+function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
+  colorMode(HSL, 360, 100, 100);
+  this.numSegments = numSegments;
+  this.perlinXStartTime = random(0,10000);
+  this.perlinYStartTime = random(0,10000);
+  this.segmentList = [];
+  this.maxSize = maxSize;
+  this.heightToWidthRatio = heightToWidthRatio; 
+  this.a = 0.0;
+  this.inc = TWO_PI/(this.numSegments + (this.numSegments/1.6));
+  this.initialHue = random(360);
+  this.hueInc = random(-5, 5);
+  this.fishName = fishName;
 
-  fishRed = fishRed + 10
-  fishBlue = fishBlue -10
-  this.blue = fishBlue;
-  this.red = fishRed;
-  this.green = fishGreen;
-  fishSegmentSize = fishSegmentSize + fishGrowthFactor;
-  fishSizeOff = fishSizeOff + 0.01;
-  if (fishGrowthFactor > 8) {
-    fishGrow = false;
-  } else if (fishGrowthFactor < -8) {
-    fishGrow = true;
-    onTail = true;
+
+
+  // Future: evolve this to class method
+  for(i = 0; i < this.numSegments; i++) {
+    // Use this 
+    var percentToComplete = map(i, 0, this.numSegments, 0, 1);
+    var perlinXValue = noise(this.perlinXStartTime);
+    var perlinYValue = noise(this.perlinYStartTime);
+    var segmentXPosition = map(perlinXValue, 0, 1, 0, width);
+    var segmentYPosition = map(perlinYValue, 0, 1, 0, height);
+    
+    // Create curve of fish using sin curve
+    segmentSize = abs(sin(this.a) * this.maxSize);
+
+    // set color 
+
+    segmentColor = color((this.initialHue) , 100, 50);
+    this.initialHue += this.hueInc;
+    this.segmentList.unshift(new Segment(i, this.initialHue, segmentXPosition, segmentYPosition, segmentSize, this.heightToWidthRatio, this.perlinXStartTime, this.perlinYStartTime, this.initialColor, this.finalColor, this.fishName));
+    this.perlinXStartTime += 0.01;
+    this.perlinYStartTime += 0.005;
+    this.a += this.inc;
   }
-  if (fishGrow === true) {
-    fishGrowthFactor = fishGrowthFactor + 2;
-  } else if (fishGrow === false) {
-    fishGrowthFactor = fishGrowthFactor - 2;
-  }
-  if (fishGrowthFactor > 8 && onTail === true) {
-    fishStopGrowing = true;
-    fishSegmentSize = 10;
-    // moveXOff = moveXOff + 100000;
-
-  }
 
 
-
-
-  this.move = function() {
-    moveXOff = moveXOff + xTiming+ randomness;
-    moveYOff = moveYOff + yTiming;
-
-    var xMoveRandomness = noise(moveXOff)*(width);
-    var yMoveRandomness = noise(moveYOff)*(height);
-
-    this.x = xMoveRandomness;
-    this.y = yMoveRandomness;
-
-
-  };
 
   this.display = function() {
-    fill(this.red, this.green, this.blue);
-    stroke(0, 0, 0, 200);
-    rectMode(CENTER);
-    // rect(this.x, this.y, this.diameter/1.5, this.diameter, this.diameter);
 
-    ellipse(this.x, this.y, this.diameter/(2-(xTiming*1-0)), this.diameter/(2-(yTiming*100)));
+    this.segmentList.forEach(function (segment) {
+      segment.display();
+    });
+  };
 
-    if (approach === true) {
-      if (facingForward === true){
-        approachSpeed = 0.001;
-        xTiming = xTiming + 0.0000002
-        yTiming = yTiming + 0.000001
+  this.move = function() {
+    this.segmentList.forEach(function (segment) {
+      segment.move();
+    });
+  };
+}
+
+// Fish segments, called by fish class
+function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, heightToWidthRatio, segmentPerlinXStartTime, segmentPerlinYStartTime, startColor, endColor, fishName) {
+  this.perlinXStartTime = segmentPerlinXStartTime;
+  this.perlinYStartTime = segmentPerlinYStartTime;
+  this.perlinXCurrentTime = this.perlinXStartTime;
+  this.perlinYCurrentTime = this.perlinYStartTime;
+  this.segmentBaseHue = segmentHue;
+  this.segmentHue = segmentHue;
+  this.segmentLightness = 50;
+  this.segmentSaturation = 70;
+  this.segmentNumber = segmentNumber;
+
+  // Sets the starting position of the fish
+  this.x = segmentX;
+  this.y = segmentY;
+  this.segmentSize = segmentSize;
+
+  this.display = function() {
+    // if(this.x > (mouseX - this.y/4) && this.x < (mouseX + this.y/8) && spotLighton === true) {
+    if(dist(this.x, this.y, mouseX, mouseY) < 150 && spotLightOn === true) {
+      // this.segmentHue = this.segmentBaseHue + 20;
+      if (this.segmentHue + fishColorChangeAmount < 1) {
+        this.segmentHue = 360;
       } else {
-        approachSpeed = -0.002;
-        xTiming = xTiming - 0.0000001;
-        // yTiming = yTiming - 0.000001;
+        this.segmentHue = this.segmentHue - fishColorChangeAmount;
       }
-      this.diameter = this.diameter + (this.diameter * approachSpeed)
-      // approachSpeed = approachSpeed + (0.0000001)
+      this.segmentLightness = 65;
+      this.segmentSaturation = 100;
+    } else {
+      // this.segmentHue = this.segmentBaseHue;
+      if (this.segmentHue + fishColorChangeAmount < 1) {
+        this.segmentHue = 360;
+      } else {
+        this.segmentHue = this.segmentHue - fishColorChangeAmount;
+      }
+      this.segmentLightness = darkness;
+      this.segmentSaturation = darkness;
     }
 
+    fill(this.segmentHue, this.segmentSaturation, this.segmentLightness);
 
+    switch (shapeArray[shapeCount]) {
+      case 'rect':
+        rectMode(CENTER);
+        rect(this.x, this.y, this.segmentSize/heightToWidthRatio, this.segmentSize);
+      case 'ellipse':
+        ellipse(this.x, this.y, this.segmentSize/heightToWidthRatio, this.segmentSize);
+    }
+    if (this.segmentNumber === 10 && showName === true) {
+      fill(200, 100, darkness+10, .5);
+      textAlign(CENTER);
+      textSize(32);
+      text(fishName, this.x, this.y-50)
+    }
   }
-};
+
+  this.move = function() {
+    // Going backward through perlin time to make fish swim forward instead of backward
+    this.perlinXCurrentTime -= 0.009;
+    this.perlinYCurrentTime -= 0.002;
+    perlinXValueSegment = noise(this.perlinXCurrentTime);
+    perlinYValueSegment = noise(this.perlinYCurrentTime);
+    this.x = map(perlinXValueSegment, 0, 1, 0, width);
+    this.y = map(perlinYValueSegment, 0, 1, 100, height);
+  }
+
+}
