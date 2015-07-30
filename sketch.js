@@ -26,7 +26,7 @@ function preload() {
 
 function setup() {
   waterDropSound.play();
-  canvas = createCanvas(windowWidth-100, windowHeight-100);
+  canvas = createCanvas(windowWidth, windowHeight);
   canvas.parent('canvasContainer');
   canvas.mouseOver(function() { onCanvas = true; });
   canvas.mouseOut( function() { onCanvas = false; });
@@ -65,50 +65,45 @@ function draw() {
   }
 }
 
+function makeButtons (text, method) {
+  button = createButton(text);
+  button.class('btn btn-default')
+  button.parent('controls');
+  button.mousePressed(method);
+}
+
 
 function createButtons() {
 
   nameBoxLabel = createElement('h4', 'Enter Fish Name');
   nameBoxLabel.parent('controls');
   nameBox = createInput('');
+  // nameBox.class('form-control fish-name');
   nameBox.html('Fish Name')
   nameBox.parent('controls');
   
-  createFishButton = createButton('Create Fish');
-  createFishButton.parent('controls');
-  createFishButton.mousePressed(createFish);
-
-  showNameButton = createButton('Show/Hide Names');
-  showNameButton.parent('controls');
-  showNameButton.mousePressed(showNames);
-
-  spotLightButton = createButton('Spotlight');
-  spotLightButton.parent('controls');
-  spotLightButton.mousePressed(spotLightOnOff);
-
-  dayTimeButton = createButton('Day/Night');
-  dayTimeButton.parent('controls');
-  dayTimeButton.mousePressed(dayLightOn);
-
-  psychedelicButton = createButton('Psychedelic');
-  psychedelicButton.parent('controls');
-  psychedelicButton.mousePressed(function psychedelic() {
-    psychedelicOn = !psychedelicOn;
-    if (psychedelicOn === true) {
-      dayLight = true;
-      if (fishColorChangeAmount === 0) {
-        fishColorChangeAmount = 4;
-      } else {
-        fishColorChangeAmount = 0;
-      } 
-    } else {
-      daylight = false;
-      fishColorChangeAmount = 0;
-    }
-
-  });
-
+  makeButtons('Create Fish', createFish);
+  makeButtons('Show/Hide Names', showNames);
+  makeButtons('Spotlight', spotLightOnOff);
+  makeButtons('Day/Night', dayLightOn);
+  makeButtons('Psychedelic', psychedelic);
 }
+
+
+function psychedelic() {
+  psychedelicOn = !psychedelicOn;
+  if (psychedelicOn === true) {
+    dayLight = true;
+    if (fishColorChangeAmount === 0) {
+      fishColorChangeAmount = 4;
+    } else {
+      fishColorChangeAmount = 0;
+    } 
+  } else {
+    daylight = false;
+    fishColorChangeAmount = 0;
+  }
+};
 
 function createWave(){
 // Experimenting with wave 
@@ -202,7 +197,7 @@ function keyPressed() {
 }
 
 function windowResized() {
-  resizeCanvas(windowWidth-100, windowHeight-100);
+  resizeCanvas(windowWidth, windowHeight);
   background(201, 80.5, 15);
 }
 
