@@ -4,7 +4,7 @@ var trails = false;
 var backgroundTransparency = 1;
 var lightBeamOne;
 var spotLightOn = false;
-var darknessSlider;
+var perlinXSpeedSlider;
 var darkness = 10;
 var forward = true;
 var fishColorChangeAmount = 0;
@@ -16,30 +16,50 @@ var showName = true;
 var dayLight = false;
 var yWaveTime = 0.0;
 var psychedelicOn = false;
+var psychedelicCount = 0;
 var sizeChange = 1;
+var waterHueInc = 0;
+var waterHue = 201;
+var perlinXCurrentTimeInc = 0.009;
+var perlinYCurrentTimeInc = 0.002;
 
 
 function preload() {
   soundFormats('ogg', 'mp3');
   waterDropSound = loadSound('assets/sounds/waterDrop.mp3');
+  lightSwitchSound = loadSound('assets/sounds/lightswitch.mp3');
+  ambientSong = loadSound('assets/sounds/ambientElectronic.mp3')
 }
 
 function setup() {
+  // create a new Amplitude analyzer
+  analyzer = new p5.Amplitude();
+  // Patch the input to an volume analyzer
+  analyzer.setInput(ambientSong);
   waterDropSound.play();
-  canvas = createCanvas(windowWidth, windowHeight);
+  canvas = createCanvas(windowWidth, windowHeight-100);
   canvas.parent('canvasContainer');
   canvas.mouseOver(function() { onCanvas = true; });
   canvas.mouseOut( function() { onCanvas = false; });
   colorMode(HSL, 360, 100, 100);
   createButtons();
 
-  // darknessSlider = createSlider(1, 20, 5);
-  // darknessSlider.parent('controls');
-  // darknessSlider.html('Darkness');
+  perlinXSpeedSlider = createSlider(1, 100, 5);
+  perlinXSpeedSlider.parent('controls');
+  perlinXSpeedSlider.html('Darkness');
 }
 
 
 function draw() {
+  sizeChange = analyzer.getLevel()*800;
+  perlinXCurrentTimeInc = perlinXSpeedSlider.value()/1000;
+  waterHue += waterHueInc;
+  if (psychedelicOn === true) {
+    psychedelicCount++;
+  }
+  if (waterHue > 359) {
+    waterHue = 0;
+  }
 
   if (dayLight === true) {
     darkness = 50;
@@ -49,9 +69,10 @@ function draw() {
   if(trails === false) {
     backgroundTransparency = 1;
   } else {
-    backgroundTransparency = 0.01;
+    backgroundTransparency = 0.07;
   }
-  fill(101, 80, 100, backgroundTransparency);
+
+  fill(waterHue, 80, 100, backgroundTransparency);
   rect(-1, -1, width+1, height+1)
 
   createWave();
@@ -65,6 +86,14 @@ function draw() {
   }
 }
 
+// function createSliders(name, label, min, max, start) {
+//   buttonName = name;
+//   name = createSlider(min, max, start);
+//   name.parent('controls');
+//   name.html(label);
+//   frameRate(name.value());
+// }
+
 function makeButtons (text, method) {
   button = createButton(text);
   button.class('btn btn-default')
@@ -74,8 +103,7 @@ function makeButtons (text, method) {
 
 
 function createButtons() {
-
-  nameBoxLabel = createElement('h4', 'Enter Fish Name');
+  nameBoxLabel = createElement('h5', 'Enter Fish Name');
   nameBoxLabel.parent('controls');
   nameBox = createInput('');
   // nameBox.class('form-control fish-name');
@@ -91,6 +119,7 @@ function createButtons() {
 
 
 function psychedelic() {
+  ambientSong.loop();
   psychedelicOn = !psychedelicOn;
   if (psychedelicOn === true) {
     dayLight = true;
@@ -99,15 +128,20 @@ function psychedelic() {
     } else {
       fishColorChangeAmount = 0;
     } 
+    waterHueInc = 1;
+    psychedelicCount = 0;
   } else {
     daylight = false;
     fishColorChangeAmount = 0;
+    waterHueInc = 0;
+    waterHue = 201;
+    ambientSong.stop();
   }
 };
 
 function createWave(){
 // Experimenting with wave 
-  fill(201, 80, darkness/2, backgroundTransparency);
+  fill(waterHue, 80, darkness/2, backgroundTransparency);
   beginShape(); 
   var xWaveTime = 0;
   // Iterate over horizontal pixels
@@ -130,12 +164,7 @@ function createWave(){
   }
 }
 
-function createSliders(name, label, parent, min, max, start) {
-  name = createSlider(min, max, start);
-  name.parent(parent);
-  name.html(label);
-  frameRate(name.value());
-}
+
 
 function lightBeam() {
   noStroke();
@@ -163,6 +192,7 @@ function showNames() {
 }
 
 function spotLightOnOff() {
+  lightSwitchSound.play();
   spotLightOn = !spotLightOn
 }
 
@@ -234,7 +264,7 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
 
     segmentColor = color((this.initialHue) , 100, 50);
     this.initialHue += this.hueInc;
-    this.segmentList.unshift(new Segment(i, this.initialHue, segmentXPosition, segmentYPosition, segmentSize, this.heightToWidthRatio, this.perlinXStartTime, this.perlinYStartTime, this.initialColor, this.finalColor, this.fishName));
+    this.segmentList.unshift(new Segment(i, this.numSegments, this.initialHue, segmentXPosition, segmentYPosition, segmentSize, this.heightToWidthRatio, this.perlinXStartTime, this.perlinYStartTime, this.initialColor, this.finalColor, this.fishName));
     this.perlinXStartTime += 0.01;
     this.perlinYStartTime += 0.005;
     this.a += this.inc;
@@ -257,7 +287,9 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
 }
 
 // Fish segments, called by fish class
-function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, heightToWidthRatio, segmentPerlinXStartTime, segmentPerlinYStartTime, startColor, endColor, fishName) {
+function Segment(segmentNumber, numSegments, segmentHue, segmentX, segmentY, segmentSize, heightToWidthRatio, segmentPerlinXStartTime, segmentPerlinYStartTime, startColor, endColor, fishName) {
+  var psychedelicSwitch = false;
+  var psychedelicFatness = 0;
   this.perlinXStartTime = segmentPerlinXStartTime;
   this.perlinYStartTime = segmentPerlinYStartTime;
   this.perlinXCurrentTime = this.perlinXStartTime;
@@ -267,6 +299,7 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
   this.segmentLightness = 50;
   this.segmentSaturation = 70;
   this.segmentNumber = segmentNumber;
+  this.numSegments = numSegments;
 
   // Sets the starting position of the fish
   this.x = segmentX;
@@ -300,9 +333,9 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
     switch (shapeArray[shapeCount]) {
       case 'rect':
         rectMode(CENTER);
-        rect(this.x, this.y, this.segmentSize/heightToWidthRatio, this.segmentSize);
+        rect(this.x, this.y, this.segmentSize/heightToWidthRatio+sizeChange, this.segmentSize);
       case 'ellipse':
-        ellipse(this.x, this.y, this.segmentSize/heightToWidthRatio, this.segmentSize);
+        ellipse(this.x, this.y, this.segmentSize/heightToWidthRatio+(sizeChange/10)+psychedelicFatness, this.segmentSize+sizeChange);
     }
     if (this.segmentNumber === 10 && showName === true) {
       fill(200, 100, darkness+10, .5);
@@ -313,13 +346,34 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
   }
 
   this.move = function() {
+    var perlinXCurrentTimeAdjustment = 0;
+    var perlinYCurrentTimeAdjustment = 0;
+    var psychedelicTimeAdjustment = 0;
+    var fatness = true;
+    if (psychedelicCount > 0 && psychedelicCount % 300 === 0) {
+      psychedelicSwitch = !psychedelicSwitch;
+    }
+    if (psychedelicSwitch === false) {
+      psychedelicTimeAdjustment = this.segmentNumber/5000;
+    } else {
+      psychedelicTimeAdjustment = (this.numSegments-this.segmentNumber)/5000;
+    }
+    if (psychedelicOn === true && psychedelicCount > 700 && psychedelicCount < 1000) {
+      trails = true;
+      perlinXCurrentTimeAdjustment += psychedelicTimeAdjustment;
+      perlinYCurrentTimeAdjustment += psychedelicTimeAdjustment;
+    } 
+    if (psychedelicOn === true && psychedelicCount > 2000) {
+      if (psychedelicCount % 100 === 0) {fatness = !fatness; }
+      if (fatness === true) {psychedelicFatness += 1; } else { psychedelicFatness -= 1; }
+    }
     // Going backward through perlin time to make fish swim forward instead of backward
-    this.perlinXCurrentTime -= 0.009;
-    this.perlinYCurrentTime -= 0.002;
+    this.perlinXCurrentTime -= perlinXCurrentTimeInc - perlinXCurrentTimeAdjustment;
+    this.perlinYCurrentTime -= perlinYCurrentTimeInc - perlinYCurrentTimeAdjustment;
     perlinXValueSegment = noise(this.perlinXCurrentTime);
     perlinYValueSegment = noise(this.perlinYCurrentTime);
-    this.x = map(perlinXValueSegment, 0, 1, 0, width);
-    this.y = map(perlinYValueSegment, 0, 1, 100, height);
+    this.x = map(perlinXValueSegment, 0, 1, -200, width+200);
+    this.y = map(perlinYValueSegment, 0, 1, 0, height+200);
   }
 
 }
