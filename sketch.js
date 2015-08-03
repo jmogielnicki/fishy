@@ -356,7 +356,7 @@ function Segment(segmentNumber, numSegments, segmentHue, segmentX, segmentY, seg
     if (psychedelicSwitch === false) {
       psychedelicTimeAdjustment = this.segmentNumber/5000;
     } else {
-      psychedelicTimeAdjustment = (this.numSegments-this.segmentNumber)/5000;
+      psychedelicTimeAdjustment = (this.numSegments-this.segmentNumber)/3000;
     }
     if (psychedelicOn === true && psychedelicCount > 700 && psychedelicCount < 1000) {
       trails = true;
