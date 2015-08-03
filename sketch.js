@@ -8,8 +8,6 @@ var darknessSlider;
 var darkness = 10;
 var forward = true;
 var fishColorChangeAmount = 0;
-var shapeArray = ['ellipse', 'rect']
-var shapeCount = 0;
 var fishNameArray = ['Riley', 'Kale', 'Eli', 'Davis']
 var fishNameCount = 0;
 var showName = true;
@@ -57,7 +55,7 @@ function draw() {
   createWave();
 
 //Display fish
-  stroke(100, 100, 10);
+  stroke(100, 100, 0);
   for (i = 0; i < fishList.length; i++) {
     fish = fishList[i];
     fish.display();
@@ -153,7 +151,7 @@ function createFish() {
 
   fishName = nameBox.value();
   nameBox.value('');
-  fishList.push(new Fish(random(10, 75), random(1, 6), random(20, 25), fishName));
+  fishList.unshift(new Fish(random(10, 75), random(1, 6), random(20, 25), fishName));
   waterDropSound.play();
   fishNameCount += 1;
 }
@@ -181,14 +179,7 @@ function keyPressed() {
       fishList[i].segmentList.reverse();
     }
   }
-  if(keyCode === 83) {
-    if(shapeCount >= shapeArray.length-1) {
-      shapeCount = 0;
-    } else {
-      shapeCount++;
-    }
 
-  }
 
   if(keyCode === 67) {
 
@@ -213,9 +204,12 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
   this.a = 0.0;
   this.inc = TWO_PI/(this.numSegments + (this.numSegments/1.6));
   this.initialHue = random(360);
-  this.hueInc = random(-5, 5);
+  this.hueInc = random(-10, 10);
+  this.saturation = random(30, 100);
   this.fishName = fishName;
 
+  //Adding this to be a anchor for size and ligthness to show 3d depth
+  this.distance = 0;
 
 
   // Future: evolve this to class method
@@ -234,7 +228,7 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
 
     segmentColor = color((this.initialHue) , 100, 50);
     this.initialHue += this.hueInc;
-    this.segmentList.unshift(new Segment(i, this.initialHue, segmentXPosition, segmentYPosition, segmentSize, this.heightToWidthRatio, this.perlinXStartTime, this.perlinYStartTime, this.initialColor, this.finalColor, this.fishName));
+    this.segmentList.unshift(new Segment(i, this.initialHue, segmentXPosition, segmentYPosition, segmentSize, this.heightToWidthRatio, this.perlinXStartTime, this.perlinYStartTime, this.initialColor, this.finalColor, this.saturation, this.fishName, this.distance));
     this.perlinXStartTime += 0.01;
     this.perlinYStartTime += 0.005;
     this.a += this.inc;
@@ -243,7 +237,6 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
 
 
   this.display = function() {
-
     this.segmentList.forEach(function (segment) {
       segment.display();
     });
@@ -257,16 +250,16 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
 }
 
 // Fish segments, called by fish class
-function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, heightToWidthRatio, segmentPerlinXStartTime, segmentPerlinYStartTime, startColor, endColor, fishName) {
+function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, heightToWidthRatio, segmentPerlinXStartTime, segmentPerlinYStartTime, startColor, endColor, saturation, fishName, distance) {
   this.perlinXStartTime = segmentPerlinXStartTime;
   this.perlinYStartTime = segmentPerlinYStartTime;
   this.perlinXCurrentTime = this.perlinXStartTime;
   this.perlinYCurrentTime = this.perlinYStartTime;
   this.segmentBaseHue = segmentHue;
   this.segmentHue = segmentHue;
-  this.segmentLightness = 50;
-  this.segmentSaturation = 70;
+  this.segmentSaturation = saturation;
   this.segmentNumber = segmentNumber;
+  this.distance = constrain(distance, 0, 2);
 
   // Sets the starting position of the fish
   this.x = segmentX;
@@ -274,36 +267,26 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
   this.segmentSize = segmentSize;
 
   this.display = function() {
-    // if(this.x > (mouseX - this.y/4) && this.x < (mouseX + this.y/8) && spotLighton === true) {
-    if(dist(this.x, this.y, mouseX, mouseY) < 150 && spotLightOn === true) {
-      // this.segmentHue = this.segmentBaseHue + 20;
-      if (this.segmentHue + fishColorChangeAmount < 1) {
-        this.segmentHue = 360;
-      } else {
-        this.segmentHue = this.segmentHue - fishColorChangeAmount;
-      }
-      this.segmentLightness = 65;
-      this.segmentSaturation = 100;
+    this.distance += 0.005;
+    if (this.distance > 6) { this.distance = 6;}
+    this.segmentLightness = darkness + (this.distance * 10);
+
+    // Setting the color gradient
+    if (this.segmentHue + fishColorChangeAmount < 1) {
+    this.segmentHue = 360;
     } else {
-      // this.segmentHue = this.segmentBaseHue;
-      if (this.segmentHue + fishColorChangeAmount < 1) {
-        this.segmentHue = 360;
-      } else {
-        this.segmentHue = this.segmentHue - fishColorChangeAmount;
-      }
-      this.segmentLightness = darkness;
-      this.segmentSaturation = darkness;
+      this.segmentHue = this.segmentHue - fishColorChangeAmount;
+    }
+
+    if(dist(this.x, this.y, mouseX, mouseY) < 150 && spotLightOn === true) {
+      this.segmentLightness = darkness + (this.distance * 2) + 50;
+    } else {
+      this.segmentLightness = darkness + (this.distance * 2);
     }
 
     fill(this.segmentHue, this.segmentSaturation, this.segmentLightness);
+    ellipse(this.x, this.y, (this.segmentSize/heightToWidthRatio) * (this.distance + 1), this.segmentSize * (this.distance + 1));
 
-    switch (shapeArray[shapeCount]) {
-      case 'rect':
-        rectMode(CENTER);
-        rect(this.x, this.y, this.segmentSize/heightToWidthRatio, this.segmentSize);
-      case 'ellipse':
-        ellipse(this.x, this.y, this.segmentSize/heightToWidthRatio, this.segmentSize);
-    }
     if (this.segmentNumber === 10 && showName === true) {
       fill(200, 100, darkness+10, .5);
       textAlign(CENTER);
@@ -318,7 +301,7 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
     this.perlinYCurrentTime -= 0.002;
     perlinXValueSegment = noise(this.perlinXCurrentTime);
     perlinYValueSegment = noise(this.perlinYCurrentTime);
-    this.x = map(perlinXValueSegment, 0, 1, 0, width);
+    this.x = map(perlinXValueSegment, 0, 1, 0 - (this.distance/4 * width), width + (this.distance/4 * width));
     this.y = map(perlinYValueSegment, 0, 1, 100, height);
   }
 
