@@ -11,7 +11,7 @@ var fishColorChangeAmount = 0;
 var fishNameArray = ['Riley', 'Kale', 'Eli', 'Davis']
 var fishNameCount = 0;
 var showName = true;
-var dayLight = false;
+var dayLight = true;
 var yWaveTime = 0.0;
 var psychedelicOn = false;
 var sizeChange = 1;
@@ -58,8 +58,9 @@ function draw() {
   stroke(100, 100, 0);
   for (i = 0; i < fishList.length; i++) {
     fish = fishList[i];
-    fish.display();
     fish.move();
+    fish.display();
+
   }
 }
 
@@ -168,6 +169,12 @@ function dayLightOn() {
   dayLight = !dayLight;
 }
 
+function flipFish() {
+  for(var i = 0; i < fishList.length; i++) {
+    fishList[i].segmentList.reverse();
+  } 
+}
+
 function keyPressed() {
   if(keyCode === 84) {
     trails = !trails;
@@ -175,9 +182,7 @@ function keyPressed() {
 
   if(keyCode === 70) {
     forward = !forward;
-    for(var i = 0; i < fishList.length; i++) {
-      fishList[i].segmentList.reverse();
-    }
+    flipFish();
   }
 
 
@@ -201,12 +206,14 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
   this.segmentList = [];
   this.maxSize = maxSize;
   this.heightToWidthRatio = heightToWidthRatio; 
-  this.a = 0.0;
-  this.inc = TWO_PI/(this.numSegments + (this.numSegments/1.6));
+
+
   this.initialHue = random(360);
   this.hueInc = random(-10, 10);
   this.saturation = random(30, 100);
   this.fishName = fishName;
+  this.timeSinceFlip = 0;
+  this.facedForward = true;
 
   //Adding this to be a anchor for size and ligthness to show 3d depth
   this.distance = 0;
@@ -222,21 +229,22 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
     var segmentYPosition = map(perlinYValue, 0, 1, 0, height);
     
     // Create curve of fish using sin curve
-    segmentSize = abs(sin(this.a) * this.maxSize);
+
 
     // set color 
 
     segmentColor = color((this.initialHue) , 100, 50);
     this.initialHue += this.hueInc;
-    this.segmentList.unshift(new Segment(i, this.initialHue, segmentXPosition, segmentYPosition, segmentSize, this.heightToWidthRatio, this.perlinXStartTime, this.perlinYStartTime, this.initialColor, this.finalColor, this.saturation, this.fishName, this.distance));
+    this.segmentList.unshift(new Segment(i, this.maxSize, this.numSegments, this.initialHue, segmentXPosition, segmentYPosition, this.heightToWidthRatio, this.perlinXStartTime, this.perlinYStartTime, this.initialColor, this.finalColor, this.saturation, this.fishName, this.distance, this.facedForward));
     this.perlinXStartTime += 0.01;
     this.perlinYStartTime += 0.005;
-    this.a += this.inc;
+
   }
 
 
 
   this.display = function() {
+    if (this.facedForward = false) { flipFish() }
     this.segmentList.forEach(function (segment) {
       segment.display();
     });
@@ -250,7 +258,7 @@ function Fish(maxSize, heightToWidthRatio, numSegments, fishName) {
 }
 
 // Fish segments, called by fish class
-function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, heightToWidthRatio, segmentPerlinXStartTime, segmentPerlinYStartTime, startColor, endColor, saturation, fishName, distance) {
+function Segment(segmentNumber, maxSize, numSegments, segmentHue, segmentX, segmentY, heightToWidthRatio, segmentPerlinXStartTime, segmentPerlinYStartTime, startColor, endColor, saturation, fishName, distance, facedForward) {
   this.perlinXStartTime = segmentPerlinXStartTime;
   this.perlinYStartTime = segmentPerlinYStartTime;
   this.perlinXCurrentTime = this.perlinXStartTime;
@@ -260,11 +268,18 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
   this.segmentSaturation = saturation;
   this.segmentNumber = segmentNumber;
   this.distance = constrain(distance, 0, 2);
+  this.facedForward = facedForward;
+  this.maxSize = maxSize;
+  this.numSegments = numSegments;
+
+  this.a = this.segmentNumber * TWO_PI/(this.numSegments + (this.numSegments/1.6));
+  this.segmentSize = abs(sin(this.a) * this.maxSize);
+
 
   // Sets the starting position of the fish
   this.x = segmentX;
   this.y = segmentY;
-  this.segmentSize = segmentSize;
+
 
   this.display = function() {
     this.distance += 0.005;
@@ -296,6 +311,13 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
   }
 
   this.move = function() {
+
+    // Storing last x value prior to perlin change so we can see if fish is moving sideways quickly and flip it
+    perlinXValueSegment = noise(this.perlinXCurrentTime);
+    perlinYValueSegment = noise(this.perlinYCurrentTime);
+    var lastX = map(perlinXValueSegment, 0, 1, 0 - (this.distance/4 * width), width + (this.distance/4 * width));
+    var timeSinceFlip
+
     // Going backward through perlin time to make fish swim forward instead of backward
     this.perlinXCurrentTime -= 0.009;
     this.perlinYCurrentTime -= 0.002;
@@ -303,6 +325,9 @@ function Segment(segmentNumber, segmentHue, segmentX, segmentY, segmentSize, hei
     perlinYValueSegment = noise(this.perlinYCurrentTime);
     this.x = map(perlinXValueSegment, 0, 1, 0 - (this.distance/4 * width), width + (this.distance/4 * width));
     this.y = map(perlinYValueSegment, 0, 1, 100, height);
+    if (this.segmentNumber === 0 && abs(lastX - this.x) > 15) {
+      flipFish();
+    }
   }
 
 }
